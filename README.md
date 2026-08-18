@@ -22,3 +22,17 @@ através de labs, CTFs e documentação pública de cada exploração.
 
 ## Contato
 GitHub: [@Zerickyy](https://github.com/Zerickyy)
+
+## Writeups
+
+| Data | Alvo | Vulnerabilidade | Resultado |
+|------|------|------------------|-----------|
+| 2026-08 | Metasploitable2 | VSFTPD 2.3.4 Backdoor | Acesso root via Metasploit |
+| 2026-08 | Metasploitable2 | UnrealIRCd 3.2.8.1 Backdoor | Acesso root via Metasploit |
+| 2026-08 | Metasploitable2 | Bindshell exposto (porta 1524) | Acesso root sem autenticação |
+| 2026-08 | Metasploitable2 | MySQL credencial vazia | Extração de dados + crack de hash |
+| 2026-08 | Metasploitable2 | Samba usermap script | Acesso root via injeção de comando |
+| 2026-08 | Metasploitable2 | Tomcat manager | Credencial fraca via força bruta |
+| 2026-08 | Metasploitable2 | DistCC command execution | Acesso não-root (daemon) |
+| 2026-08 | Metasploitable2 | PostgreSQL payload execution | Acesso não-root (postgres) |
+| 2026-08 | Metasploitable2 | NFS root squashing desabilitado | Escalação para root |
