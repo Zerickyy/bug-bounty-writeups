@@ -113,12 +113,67 @@ painel administrativo.
 
 ---
 
+### Lab 4: JWT authentication bypass via jwk header injection (Practitioner)
+Servidor confia em chaves públicas embutidas diretamente no
+header do JWT (campo "jwk"), sem verificar se vieram de uma
+fonte confiável. Gerada uma chave RSA própria no JWT Editor,
+usada a função "Attack -> Embedded JWK" da extensão — que
+automaticamente assina o token com a chave privada e embute a
+chave pública no header. Acesso ao /admin concedido.
+
+### Lab 5: JWT authentication bypass via jku header injection (Practitioner)
+Servidor busca a chave pública em uma URL fornecida no campo
+"jku" do header, sem validar se o domínio é confiável. Chave
+pública própria (RSA) hospedada no Exploit Server do PortSwigger
+em /jwks.json. Header editado manualmente: kid atualizado para
+o kid da chave gerada, jku apontando para a URL do Exploit
+Server. Token re-assinado com "Don't modify header". Dificuldade
+encontrada: campo "File" do Exploit Server estava configurado
+como "/exploit" por padrão — corrigido para "/jwks.json".
+
+### Lab 6: JWT authentication bypass via kid header path traversal (Practitioner)
+Servidor usa o campo "kid" do header para localizar o arquivo de
+chave no sistema de arquivos. Sem sanitização do valor, é
+possível usar path traversal para apontar para /dev/null (arquivo
+vazio em sistemas Linux). Criada chave simétrica com valor
+"k": "AA==" (base64 de string vazia). Header editado com
+kid=../../../../../../../dev/null. Token assinado com essa chave
+vazia — servidor lê /dev/null, obtém string vazia, e a assinatura
+bate.
+
+### Lab 7: JWT authentication bypass via algorithm confusion (Expert)
+Servidor usa RSA (assimétrico) mas aceita HS256 (simétrico) por
+implementação falha. Chave pública obtida via endpoint /jwks.json.
+JWK importado no JWT Editor → convertido para PEM → PEM
+codificado em base64 → usado como valor "k" em chave simétrica.
+Header editado para alg: HS256, payload para sub: administrator.
+Token re-assinado com HS256 usando a chave pública RSA como
+segredo — servidor verifica com a mesma chave pública, assinatura
+bate.
+
+### Lab 8: JWT authentication bypass via algorithm confusion with no exposed key (Expert)
+Variação do Lab 7 sem chave pública exposta. Dois tokens JWT
+capturados de sessões diferentes. Chave pública derivada
+matematicamente usando Docker:
+
+    sudo docker run --rm -it portswigger/sig2n <token1> <token2>
+
+Ferramenta gerou 2 candidatos de chave (x509 e pkcs1). Cada
+token forjado testado no Repeater — o primeiro (x509, multiplier 1)
+retornou 200 OK, confirmando a chave correta. Mesma técnica do
+Lab 7: chave x509 base64 usada como "k" em chave simétrica,
+alg trocado para HS256, sub para administrator, re-assinado com
+"Don't modify header".
+
+---
+
 ## Conclusão geral
-Sete laboratórios completos cobrindo os principais vetores de
+Doze laboratórios completos cobrindo os principais vetores de
 SSRF (ataque direto, ataque a sistema interno, bypass de
-blacklist, bypass de whitelist) e os três cenários mais comuns
-de falha de verificação de JWT (ausência de verificação,
-aceitação de "alg: none", e chave secreta fraca).
+blacklist, bypass de whitelist) e os oito cenários de falha de
+verificação de JWT (ausência de verificação, alg: none, chave
+fraca, jwk injection, jku injection, kid path traversal, e
+algorithm confusion com e sem chave exposta).
 
 Recomendações gerais:
 - SSRF: nunca confiar em requisições vindas do próprio servidor
@@ -126,5 +181,6 @@ Recomendações gerais:
   parsing robusto de RFC 3986, não comparação de string simples
 - JWT: sempre usar a função de verificação completa da biblioteca
   (nunca apenas decode); rejeitar explicitamente alg: none;
-  usar chaves secretas geradas aleatoriamente com entropia
-  suficiente (256+ bits), nunca strings previsíveis
+  usar allowlist de algoritmos aceitos; não confiar em kid, jku
+  ou jwk fornecidos pelo cliente sem validação rigorosa; usar
+  chaves secretas com entropia suficiente (256+ bits)
